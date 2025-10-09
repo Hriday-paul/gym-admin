@@ -17,8 +17,8 @@ type TDataType = {
 const data: TDataType[] = Array.from({ length: 20 }).map((data, inx) => ({
   key: inx,
   serial: inx + 1,
-  name: "Khalid Endak",
-  email: "khalidendak@gmail.com",
+  name: "Caleb Shirtum ",
+  email: "calebshirtum@gmail.com",
   phoneNumber: "+9112655423",
   date: "11 Sep, 2025",
 }));

@@ -39,11 +39,11 @@ const UserDetails = ({ open, setOpen }: TPropsType) => {
         <div className="mt-10">
           <div className="flex justify-between bg-[#ECF2F0]  py-3 px-2">
             <h4>User name :</h4>
-            <p className="font-medium">Khalid Endak</p>
+            <p className="font-medium">Caleb Shirtum </p>
           </div>
           <div className="flex justify-between   py-3 px-2">
             <h4>Email :</h4>
-            <p className="font-medium">khalidendak@gmail.com</p>
+            <p className="font-medium">caleb@gmail.com</p>
           </div>
           <div className="flex justify-between bg-[#ECF2F0]  py-3 px-2">
             <h4>Contact Number :</h4>
