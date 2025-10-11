@@ -250,6 +250,21 @@ export default function AddEventModal({
                 />
               </div>
 
+                {/* Venue Name */}
+              <FormField
+                control={form.control}
+                name="zipCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Zip Code</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="Enter the zip code" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {/* Event Date */}
               <FormField
                 control={form.control}

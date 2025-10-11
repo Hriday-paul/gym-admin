@@ -10,6 +10,7 @@ export const eventFormSchema = z.object({
   registrationFee: z.string().min(1, "Registration fee is required"),
   eventWebsite: z.string().email("Invalid email address"),
   images: z.array(z.string()),
+  zipCode: z.string().min(1, "Zip code is required"),
 });
 
 export type EventFormValues = z.infer<typeof eventFormSchema>;
