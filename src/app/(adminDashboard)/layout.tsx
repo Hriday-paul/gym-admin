@@ -39,15 +39,9 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
     <ConfigProvider
       theme={{
         components: {
-          Input: {
-            colorBorder: "var(--color-main)",
-          },
-          Form: {
-            labelFontSize: 18,
-          },
-          DatePicker: {
-            colorBorder: "rgb(184,114,174)",
-          },
+          // Input: {
+          //   colorBorder: "var(--color-main)",
+          // }
         },
       }}
     >

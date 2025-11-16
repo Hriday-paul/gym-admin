@@ -9,17 +9,25 @@ import LogoSection from "../LogoSection"
 import { useRouter } from "next/navigation"
 import { useRef, type KeyboardEvent } from "react"
 import { OtpFormValues, otpSchema } from "./schema"
-
+import { LoaderCircle } from "lucide-react"
+import { useVerifyOtpMutation } from "@/redux/api/auth.api"
+import { useCookies } from "react-cookie"
+import { config } from "@/utils/config"
+import { toast } from "sonner"
 
 
 export function OtpVerificationForm() {
+
+  const [postVerify, { isLoading }] = useVerifyOtpMutation();
+  const route = useRouter();
+  const [_, setCookie] = useCookies(['accessToken', 'refreshToken', "token"]);
+
   const form = useForm<OtpFormValues>({
     resolver: zodResolver(otpSchema),
     defaultValues: {
       otp: "",
     },
   })
-  const router = useRouter()
 
   // Create refs for each input
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
@@ -73,11 +81,26 @@ export function OtpVerificationForm() {
     }
   }
 
-  const onSubmit = (values: OtpFormValues) => {
-    console.log("OTP submitted:", values);
-     router.push("/reset-password")
-    // Handle OTP verification logic here
-    // router.push("/reset-password");
+  const onSubmit = async(values: OtpFormValues) => {
+    try {
+      const res = await postVerify(values).unwrap();
+
+
+      setCookie('accessToken', res?.data?.accessToken, {
+        httpOnly: false,
+        maxAge: 14 * 24 * 60 * 60, // 14 days
+        path: '/',
+        sameSite: 'lax',
+        secure: config.hasSSL,
+      });
+
+      toast.success('Email Verified Successfully');
+
+      route.push('/reset-password');
+
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Something went wrong, try again');
+    }
   }
 
   const otpValue = form.watch("otp").padEnd(6, " ")
@@ -132,9 +155,11 @@ export function OtpVerificationForm() {
               {/* Verify Button */}
               <Button
                 type="submit"
-                className="w-full h-12 bg-main-color hover:bg-red-700 text-white font-medium text-base"
+                disabled={isLoading}
+                className="w-full h-12 bg-main-color hover:bg-red-700 text-white font-medium text-base flex flex-row gap-x-2 items-center disabled:cursor-not-allowed"
               >
                 Verify Email
+                {isLoading ? <LoaderCircle className="animate-spin size-5 text-white" /> : <></>}
               </Button>
             </form>
           </Form>

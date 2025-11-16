@@ -1,41 +1,37 @@
 "use client";
 import type React from "react";
 import { useState } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Upload, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { daysOfWeek, formSchema, FormValues, timeSlots } from "./schema.utils";
 import Image from "next/image";
-import CountryStateCitySelector from "@/components/ui/CountryStateCitySelector";
+import { Button, Form, FormProps, Input, InputNumber, Modal, Select, Upload, UploadFile } from "antd";
+import { RiCloseLargeLine } from "react-icons/ri";
+import { MdDeleteOutline } from "react-icons/md";
+import { FaGooglePlus, FaPlus } from "react-icons/fa6";
+import { timeSlotOptions } from "@/utils/config";
+import { CloudDownload } from "lucide-react";
 
 interface AddGymModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedId?: number;
+}
+
+type FieldType = {
+  images : UploadFile[],
+  name: string,
+  description: string,
+  address: string,
+  street: string,
+  state: string,
+  city: string,
+  zip_code: string,
+  phone: string,
+  email: string,
+  website: string,
+  facebook: string,
+  instagram: string,
+  mat_schedules: { day: string, from: number, from_view: string, to: number, to_view: string }[],
+  class_schedules: { name: string, day: string, from: number, from_view: string, to: number, to_view: string }[],
+  disciplines: string[],
 }
 
 export function AddGymModal({
@@ -44,692 +40,366 @@ export function AddGymModal({
   selectedId,
 }: AddGymModalProps) {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [disciplineInput, setDisciplineInput] = useState("");
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      images: [],
-      gymName: "",
-      description: "",
-      address: "",
-      state: "",
-      city: "",
-      zipCode: "",
-      phoneNumber: "",
-      email: "",
-      website: "",
-      facebook: "",
-      instagram: "",
-      openMatSchedule: [
-        { day: "Monday", startTime: "12:30 PM", endTime: "2:30 PM" },
-      ],
-      classSchedule: [
-        {
-          className: "",
-          day: "Monday",
-          startTime: "12:30 PM",
-          endTime: "2:30 PM",
-        },
-      ],
-      disciplines: [],
-    },
-  });
+  const onFinish: FormProps<FieldType>['onFinish'] = async (values) => {
 
-  const { setValue, control, register } = form;
-
-  const {
-    fields: openMatFields,
-    append: appendOpenMat,
-    remove: removeOpenMat,
-  } = useFieldArray({
-    control: form.control,
-    name: "openMatSchedule",
-  });
-
-  const {
-    fields: classFields,
-    append: appendClass,
-    remove: removeClass,
-  } = useFieldArray({
-    control: form.control,
-    name: "classSchedule",
-  });
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const newPreviews: string[] = [];
-      const newImages: string[] = [];
-
-      Array.from(files).forEach((file) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const result = reader.result as string;
-          newPreviews.push(result);
-          newImages.push(result);
-
-          if (newPreviews.length === files.length) {
-            setImagePreviews((prev) => [...prev, ...newPreviews]);
-            form.setValue("images", [
-              ...form.getValues("images"),
-              ...newImages,
-            ]);
-          }
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleDisciplineKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>
-  ) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const trimmedValue = disciplineInput.trim();
-      if (trimmedValue) {
-        const currentDisciplines = form.getValues("disciplines");
-        if (!currentDisciplines.includes(trimmedValue)) {
-          form.setValue("disciplines", [...currentDisciplines, trimmedValue]);
-        }
-        setDisciplineInput("");
-      }
-    }
-  };
-
-  const removeDisciplineTag = (indexToRemove: number) => {
-    const currentDisciplines = form.getValues("disciplines");
-    form.setValue(
-      "disciplines",
-      currentDisciplines.filter((_, index) => index !== indexToRemove)
-    );
-  };
-
-  const onSubmit = (data: FormValues) => {
-    console.log(data);
-    onOpenChange(false);
-  };
+  }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scroll-hide">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-semibold">
-            {selectedId ? "Edit Gym" : "Add Gym"}
-          </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
-            {selectedId
-              ? ""
-              : "Fill in the details to add a new gym to your platform"}
-          </DialogDescription>
-        </DialogHeader>
+    <Modal
+      open={open}
+      footer={null}
+      centered={true}
+      onCancel={() => onOpenChange(false)}
+      closeIcon={false}
+      width={800}
+    // style={{
+    //   maxWidth: "700px",
+    //   width: "100%",
+    //   borderRadius: "12px",
+    // }}
+    >
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Upload Images */}
+      {/* Close button */}
+      <div className="flex justify-end mb-4">
+        <div
+          className="w-10 h-10 bg-[#F6BEBF]  rounded-full flex justify-center items-center cursor-pointer"
+          onClick={() => onOpenChange(false)}
+        >
+          <RiCloseLargeLine size={18} color="#E12728" className="" />
+        </div>
+      </div>
+
+      <div className="text-2xl font-semibold">
+        {selectedId ? "Edit Gym" : "Add Gym"}
+      </div>
+      <div className="text-sm text-muted-foreground mb-5">
+        {selectedId
+          ? ""
+          : "Fill in the details to add a new gym to your platform"}
+      </div>
+
+
+      <Form
+        name="basic"
+        style={{ width: '100%' }}
+        initialValues={{ class_schedules: [{}], mat_schedules: [{}] }}
+        onFinish={onFinish}
+        autoComplete="off"
+        layout="vertical">
+
+        <Form.Item<FieldType>
+          name="images"
+          label="Images"
+          valuePropName="fileList"
+          getValueFromEvent={(e) => {
+            if (Array.isArray(e)) {
+              return e;
+            }
+            return e?.fileList;
+          }}
+          rules={[{ required: true, message: "Minimum 1 image is required" }]}
+        >
+          <Upload
+            name="files"
+            // maxCount={1}
+            beforeUpload={() => false} // prevents automatic upload
+            accept="image/*"
+            listType="picture-card"
+            multiple
+            onPreview={() => { }}
+            showUploadList={{
+              showPreviewIcon: false,
+              showRemoveIcon: true,
+            }}
+          >
+            <p className="ant-upload-drag-icon mx-auto flex justify-center">
+              <CloudDownload size={30} />
+            </p>
+          </Upload>
+        </Form.Item>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* lest side */}
+          <div>
             <div>
-              <FormLabel className="text-sm font-medium mb-3 block">
-                Upload Images
-              </FormLabel>
-              <div className="flex gap-3">
-                <label className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors">
-                  <Upload className="w-5 h-5 text-gray-400 mb-1" />
-                  <span className="text-xs text-gray-500">Upload</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={handleImageUpload}
-                  />
-                </label>
-                {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative w-24 h-24 group">
-                    <Image
-                      width={96}
-                      height={96}
-                      src={preview || "/placeholder.svg"}
-                      alt={`Uploaded ${index + 1}`}
-                      className="w-full h-full object-cover rounded-lg"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
+              <h3 className="text-base font-semibold mb-3">Basic Information</h3>
+              <Form.Item<FieldType> name="name" label={"Gym Name"} rules={[{ required: true, message: "gym name is required" }]}>
+                <Input size="large" placeholder="Enter Gym name" />
+              </Form.Item>
+
+              <Form.Item<FieldType> name="description" label={"Description"} rules={[{ required: true, message: "Description is required" }]}>
+                <Input.TextArea rows={4} size="large" placeholder="Enter gym Description" />
+              </Form.Item>
             </div>
 
-            {/* Two Column Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Left Column */}
-              <div className="space-y-6">
-                {/* Basic Information */}
-                <div>
-                  <h3 className="text-sm font-semibold mb-4">
-                    Basic Information
-                  </h3>
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="gymName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm">Gym Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter gym name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+            <div>
+              <h3 className="text-base font-semibold mb-3">Location</h3>
+              <Form.Item<FieldType> name="address" label={"Address"} rules={[{ required: true, message: "address is required" }]}>
+                <Input size="large" placeholder="Enter address" />
+              </Form.Item>
 
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm">Description</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter gym description"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-
-                {/* Location */}
-                <div>
-                  <h3 className="text-sm font-semibold mb-4">Location</h3>
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm">Address</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter address" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div >
-                      <CountryStateCitySelector
-                        control={control}
-                        setValue={setValue}
-                        register={register}
-                        userAddress={{ country: "United States" }}
-                        className="bg-transparent"
-                        label={true}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="zipCode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm">Zip Code</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter zip code" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-
-                {/* Open Mat Schedule */}
-                <div>
-                  <h3 className="text-sm font-semibold mb-4">
-                    Open Mat Schedule
-                  </h3>
-                  <div className="space-y-4">
-                    {openMatFields.map((field, index) => (
-                      <div key={field.id} className="space-y-3 relative">
-                        {index > 0 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute -right-2 -top-2 h-6 w-6 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50"
-                            onClick={() => removeOpenMat(index)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-
-                        <FormField
-                          control={form.control}
-                          name={`openMatSchedule.${index}.day`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm">Day</FormLabel>
-                              <Select
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select day" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {daysOfWeek.map((day) => (
-                                    <SelectItem key={day} value={day}>
-                                      {day}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <div className="grid grid-cols-[1fr,auto,1fr] gap-2 items-end">
-                          <FormField
-                            control={form.control}
-                            name={`openMatSchedule.${index}.startTime`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-sm">Time</FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {timeSlots.map((time) => (
-                                      <SelectItem key={time} value={time}>
-                                        {time}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <span className="text-sm text-muted-foreground pb-2">
-                            to
-                          </span>
-
-                          <FormField
-                            control={form.control}
-                            name={`openMatSchedule.${index}.endTime`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-sm opacity-0">
-                                  End
-                                </FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {timeSlots.map((time) => (
-                                      <SelectItem key={time} value={time}>
-                                        {time}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      </div>
-                    ))}
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="w-full text-pink-600 hover:text-pink-700 hover:bg-pink-50"
-                      onClick={() =>
-                        appendOpenMat({
-                          day: "Monday",
-                          startTime: "12:30 PM",
-                          endTime: "2:30 PM",
-                        })
-                      }
-                    >
-                      + Add More Days
-                    </Button>
-                  </div>
-                </div>
+              <div className="grid grid-cols-2 gap-x-5">
+                <Form.Item<FieldType> name="address" label={"Address"} rules={[{ required: true, message: "address is required" }]}>
+                  <Input size="large" placeholder="Enter address" />
+                </Form.Item>
+                <Form.Item<FieldType> name="city" label={"City"} rules={[{ required: true, message: "city is required" }]}>
+                  <Input size="large" placeholder="Enter city" />
+                </Form.Item>
               </div>
+              <Form.Item<FieldType> name="zip_code" label={"Zip Code"} rules={[{ required: true, message: "zip code is required" }]}>
+                <Input size="large" placeholder="Enter zip code" />
+              </Form.Item>
+            </div>
 
-              {/* Right Column */}
-              <div className="space-y-6">
-                {/* Contact Information */}
-                <div>
-                  <h3 className="text-sm font-semibold mb-4">
-                    Contact Information
-                  </h3>
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="phoneNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm">
-                            Phone Number
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter phone number"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+            <div>
+              <h3 className="text-base font-semibold mb-3">Open Mat Schedule</h3>
+              <Form.List
+                name="mat_schedules"
+                rules={[]}
+              >
 
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm">Email</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter email address"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                {(fields, { add, remove }, { errors }) => (
+                  <>
+                    {fields.map((field) => (
+                      <Form.Item
+                        // label={index === 0 ? 'Days Off' : ''}
+                        required={false}
+                        noStyle
+                        key={`mat_schedules-${field.key}`}
+                      >
+                        <div className="flex flex-row gap-x-5">
+                          <div className="w-full">
+                            <Form.Item
+                              name={[field.name, "day"]}
+                              validateTrigger={["onChange", "onBlur"]}
+                              rules={[{ required: true, message: "Plsease, select day" }]}
+                              label="Day"
+                            >
+                              <Select
+                                size="large"
+                                placeholder="Select day"
+                                className='!w-full'
+                                options={["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]?.map(i => {
+                                  return { label: i, value: i }
+                                })}
+                              />
+                            </Form.Item>
 
-                    <FormField
-                      control={form.control}
-                      name="website"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm">Website</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter website URL" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="facebook"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm">Facebook</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter Facebook URL"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="instagram"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm">Instagram</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter Instagram URL"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-
-                {/* Class Schedule */}
-                <div>
-                  <h3 className="text-sm font-semibold mb-4">Class Schedule</h3>
-                  <div className="space-y-4">
-                    {classFields.map((field, index) => (
-                      <div key={field.id} className="space-y-3 relative">
-                        {index > 0 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute -right-2 -top-2 h-6 w-6 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 z-10"
-                            onClick={() => removeClass(index)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-
-                        <FormField
-                          control={form.control}
-                          name={`classSchedule.${index}.className`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm">
-                                Class Name
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="Enter the class name"
-                                  {...field}
+                            <div className="grid grid-cols-2 gap-x-3">
+                              <Form.Item
+                                name={[field.name, "from"]}
+                                validateTrigger={["onChange", "onBlur"]}
+                                rules={[{ required: true, message: "Plsease, select time" }]}
+                                label="From"
+                              >
+                                <Select
+                                  size="large"
+                                  placeholder="Select open time"
+                                  className='!w-full'
+                                  options={timeSlotOptions?.map(i => {
+                                    return { label: i?.label, value: i?.value }
+                                  })}
                                 />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                              </Form.Item>
 
-                        <FormField
-                          control={form.control}
-                          name={`classSchedule.${index}.day`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm">Day</FormLabel>
-                              <Select
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
+                              <Form.Item
+                                name={[field.name, "to"]}
+                                validateTrigger={["onChange", "onBlur"]}
+                                rules={[{ required: true, message: "Plsease, select time" }]}
+                                label="To"
                               >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select day" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {daysOfWeek.map((day) => (
-                                    <SelectItem key={day} value={day}>
-                                      {day}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <div className="grid grid-cols-[1fr,auto,1fr] gap-2 items-end">
-                          <FormField
-                            control={form.control}
-                            name={`classSchedule.${index}.startTime`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-sm">Time</FormLabel>
                                 <Select
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {timeSlots.map((time) => (
-                                      <SelectItem key={time} value={time}>
-                                        {time}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <span className="text-sm text-muted-foreground pb-2">
-                            to
-                          </span>
-
-                          <FormField
-                            control={form.control}
-                            name={`classSchedule.${index}.endTime`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-sm opacity-0">
-                                  End
-                                </FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {timeSlots.map((time) => (
-                                      <SelectItem key={time} value={time}>
-                                        {time}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      </div>
-                    ))}
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="w-full text-pink-600 hover:text-pink-700 hover:bg-pink-50"
-                      onClick={() =>
-                        appendClass({
-                          className: "",
-                          day: "Monday",
-                          startTime: "12:30 PM",
-                          endTime: "2:30 PM",
-                        })
-                      }
-                    >
-                      + Add More Classes
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Disciplines - Full Width */}
-            <div>
-              <h3 className="text-sm font-semibold mb-4">Disciplines</h3>
-              <FormField
-                control={form.control}
-                name="disciplines"
-                render={() => (
-                  <FormItem>
-                    <FormControl>
-                      <div className="space-y-3">
-                        <Input
-                          placeholder="Type a discipline and press Enter"
-                          value={disciplineInput}
-                          onChange={(e) => setDisciplineInput(e.target.value)}
-                          onKeyDown={handleDisciplineKeyDown}
-                        />
-                        {form.watch("disciplines").length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {form
-                              .watch("disciplines")
-                              .map((discipline, index) => (
-                                <div
-                                  key={index}
-                                  className="inline-flex items-center gap-1 bg-pink-50 text-pink-700 px-3 py-1 rounded-full text-sm"
-                                >
-                                  <span>{discipline}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => removeDisciplineTag(index)}
-                                    className="hover:bg-pink-100 rounded-full p-0.5 transition-colors"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              ))}
+                                  size="large"
+                                  placeholder="Select close time"
+                                  className='!w-full'
+                                  options={timeSlotOptions?.map(i => {
+                                    return { label: i?.label, value: i?.value }
+                                  })}
+                                />
+                              </Form.Item>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+
+                          <Button
+                            type="primary"
+                            onClick={() => remove(field.name)}
+                            icon={<MdDeleteOutline className="dynamic-delete-button !text-danger" />}
+                            size="middle"
+                          >
+                          </Button>
+
+
+                          {/* Add button only beside the first input */}
+
+                        </div>
+                      </Form.Item>
+                    ))}
+                    <Button
+                      type="dashed"
+                      block
+                      onClick={() => add()}
+                      icon={<FaPlus />}
+                      iconPosition="start"
+                      size="middle"
+                    >
+                      Add More Days
+                    </Button>
+                    <Form.ErrorList errors={errors} />
+                  </>
                 )}
-              />
+              </Form.List>
             </div>
 
-            {/* Submit Button */}
+          </div>
 
-            <Button
-              type="submit"
-              className="bg-main-color hover:bg-red-700 text-white px-8 w-full"
-            >
-              {selectedId ? "Update" : "Save"}
-            </Button>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          {/* right side */}
+          <div>
+            <div>
+              <h3 className="text-base font-semibold mb-3">Contact Information</h3>
+              <Form.Item<FieldType> name="phone" label={"Phone Number"} rules={[{ required: true, message: "phone number is required" }]}>
+                <InputNumber size="large" placeholder="Enter phone number" className="w-full" />
+              </Form.Item>
+              <Form.Item<FieldType> name="email" label={"Email Number"} rules={[{ required: true, message: "email is required" }]}>
+                <Input size="large" type="email" placeholder="Enter email" />
+              </Form.Item>
+              <Form.Item<FieldType> name="website" label={"Website"} rules={[]}>
+                <Input size="large" placeholder="http://xyz.com" />
+              </Form.Item>
+              <Form.Item<FieldType> name="facebook" label={"Facebook"} rules={[]}>
+                <Input size="large" placeholder="http://facebook.com" />
+              </Form.Item>
+              <Form.Item<FieldType> name="instagram" label={"Instagram"} rules={[]}>
+                <Input size="large" placeholder="http://instagram.com" />
+              </Form.Item>
+            </div>
+
+            <div>
+              <h3 className="text-base font-semibold mb-3">Class Schedule</h3>
+              <Form.List
+                name="class_schedules"
+                rules={[]}
+              >
+
+                {(fields, { add, remove }, { errors }) => (
+                  <>
+                    {fields.map((field) => (
+                      <Form.Item
+                        // label={index === 0 ? 'Days Off' : ''}
+                        required={false}
+                        noStyle
+                        key={`class_schedules-${field.key}`}
+                      >
+                        <div className="flex flex-row gap-x-5">
+                          <div className="w-full">
+
+                            <Form.Item
+                              name={[field.name, "day"]}
+                              validateTrigger={["onChange", "onBlur"]}
+                              rules={[{ required: true, message: "Plsease, enter class name" }]}
+                              label="Class Name"
+
+                            >
+                              <Input size="large" placeholder="Enter the class name" />
+                            </Form.Item>
+
+                            <Form.Item
+                              name={[field.name, "day"]}
+                              validateTrigger={["onChange", "onBlur"]}
+                              rules={[{ required: true, message: "Plsease, select day" }]}
+                              label="Day"
+                            >
+                              <Select
+                                size="large"
+                                placeholder="Select day"
+                                className='!w-full'
+                                options={["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]?.map(i => {
+                                  return { label: i, value: i }
+                                })}
+                              />
+                            </Form.Item>
+
+                            <div className="grid grid-cols-2 gap-x-3">
+                              <Form.Item
+                                name={[field.name, "from"]}
+                                validateTrigger={["onChange", "onBlur"]}
+                                rules={[{ required: true, message: "Plsease, select time" }]}
+
+                                label="From"
+                              >
+                                <Select
+                                  size="large"
+                                  placeholder="Select open time"
+                                  className='!w-full'
+                                  options={timeSlotOptions?.map(i => {
+                                    return { label: i?.label, value: i?.value }
+                                  })}
+                                />
+                              </Form.Item>
+
+                              <Form.Item
+                                name={[field.name, "to"]}
+                                validateTrigger={["onChange", "onBlur"]}
+                                rules={[{ required: true, message: "Plsease, select time" }]}
+                                label="To"
+                              >
+                                <Select
+                                  size="large"
+                                  placeholder="Select close time"
+                                  className='!w-full'
+                                  options={timeSlotOptions?.map(i => {
+                                    return { label: i?.label, value: i?.value }
+                                  })}
+                                />
+                              </Form.Item>
+                            </div>
+                          </div>
+
+                          <Button
+                            type="primary"
+                            onClick={() => remove(field.name)}
+                            icon={<MdDeleteOutline className="dynamic-delete-button !text-danger" />}
+                            size="middle"
+                          >
+                          </Button>
+
+
+                          {/* Add button only beside the first input */}
+
+                        </div>
+                      </Form.Item>
+                    ))}
+                    <Button
+                      type="dashed"
+                      block
+                      onClick={() => add()}
+                      icon={<FaPlus />}
+                      iconPosition="start"
+                      size="middle"
+                    >
+                      Add More Classes
+                    </Button>
+                    <Form.ErrorList errors={errors} />
+                  </>
+                )}
+              </Form.List>
+            </div>
+
+          </div>
+        </div>
+
+        <Button
+          type="primary"
+          htmlType="submit"
+          size="large"
+          className="mt-6"
+          block
+        >
+          Submit
+        </Button>
+
+      </Form>
+
+    </Modal>
   );
 }

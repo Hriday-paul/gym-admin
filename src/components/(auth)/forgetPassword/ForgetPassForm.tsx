@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mail } from "lucide-react";
+import { LoaderCircle, Mail } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -15,18 +15,42 @@ import {
 import LogoSection from "../LogoSection";
 import { ForgetPassFormValues, forgetPassSchema } from "./Schema";
 import { useRouter } from "next/navigation";
+import { useForgotPasswordMutation } from "@/redux/api/auth.api";
+import { useCookies } from "react-cookie";
+import { config } from "@/utils/config";
+import { toast } from "sonner";
 
 export function ForgetPassForm() {
+  const [postApi, { isLoading }] = useForgotPasswordMutation();
+  const route = useRouter();
+  const [_, setCookie] = useCookies(['token']);
+
   const form = useForm<ForgetPassFormValues>({
     resolver: zodResolver(forgetPassSchema),
     defaultValues: {
-      emailOrPhone: "",
+      email: "",
     },
   });
-  const router = useRouter();
 
-  const onSubmit = (values: ForgetPassFormValues) => {
-    router.push("/verify-email");
+  const onSubmit = async (values: ForgetPassFormValues) => {
+    try {
+      const res = await postApi(values).unwrap();
+
+      setCookie('token', res?.data?.token, {
+        httpOnly: false,
+        maxAge: 14 * 24 * 60 * 60, // 14 days
+        path: '/',
+        sameSite: 'lax',
+        secure: config.hasSSL,
+      });
+
+      toast.success('Otp send to your email');
+
+      route.push("/verify-email");
+
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Something went wrong, try again');
+    }
   };
 
   return (
@@ -53,7 +77,7 @@ export function ForgetPassForm() {
               {/* Email/Phone Input */}
               <FormField
                 control={form.control}
-                name="emailOrPhone"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm font-medium text-gray-700">
@@ -78,9 +102,11 @@ export function ForgetPassForm() {
               {/* Login Button */}
               <Button
                 type="submit"
-                className="w-full h-12 bg-main-color hover:bg-red-700 text-white font-medium text-base"
+                disabled={isLoading}
+                className="w-full h-12 bg-main-color hover:bg-red-700 text-white font-medium text-base flex flex-row gap-x-2 items-center disabled:cursor-not-allowed"
               >
-                Send OTP
+                Submit
+                {isLoading ? <LoaderCircle className="animate-spin size-5 text-white" /> : <></>}
               </Button>
             </form>
           </Form>

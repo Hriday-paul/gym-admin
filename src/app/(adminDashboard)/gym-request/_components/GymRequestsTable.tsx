@@ -1,33 +1,24 @@
 "use client";
-import { Input, TableProps } from "antd";
-import { useState } from "react";
-import DataTable from "@/utils/DataTable";
-import { Eye } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Button, Input, Pagination, Table, TableColumnsType, Tag } from "antd";
+import { useState } from "react"
+import { Eye, Search } from "lucide-react";
 import GymRequestModal from "@/components/(adminDashboard)/modals/GymRequestModal";
-
-type TDataType = {
-  key?: number;
-  serial: number;
-  name: string;
-  email: string;
-  date: string;
-};
-
-const data: TDataType[] = Array.from({ length: 20 }).map((data, inx) => ({
-  key: inx,
-  serial: inx + 1,
-  name: "Caleb Shirtum ",
-  email: "calebshirtum@gmail.com",
-  phoneNumber: "+9112655423",
-  date: "7 oct, 2025",
-  status: inx % 2 === 0 ? "Approved" : "Pending",
-}));
+import { useAllClaimReqsQuery } from "@/redux/api/claimReq.api";
+import ErrorComponent from "@/components/shared/ErrorComponent";
+import { ICalimRes } from "@/redux/types";
+import moment from "moment";
 
 const GymRequestsTable = () => {
-  const [open, setOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const limit = 10
+  const [searchText, setSearchText] = useState("");
+  const query: { page: number, limit: number, searchTerm: string } = { page, limit, searchTerm: searchText };
+  const { isLoading, isError, data, isFetching } = useAllClaimReqsQuery(query)
 
-  const columns: TableProps<TDataType>["columns"] = [
+  const [open, setOpen] = useState(false);
+  const [gymDetails, setGymDetails] = useState<ICalimRes | null>(null);
+
+  const columns: TableColumnsType<ICalimRes> = [
     {
       title: "Serial",
       dataIndex: "serial",
@@ -36,54 +27,75 @@ const GymRequestsTable = () => {
     {
       title: "Name",
       dataIndex: "name",
+      render: (_, record) => {
+        return <p>{record?.user?.first_name + " " + (record?.user?.last_name ?? "")}</p>
+      }
     },
     {
       title: "Email",
       dataIndex: "email",
+      render: (value) => value ?? "N/A"
     },
     {
       title: "Phone Number",
-      dataIndex: "phoneNumber",
+      dataIndex: "phone",
+      render: (value) => value ?? "N/A"
     },
     {
       title: "Status Type",
       dataIndex: "status",
-      render: (text) => (
-        <p
-          className={cn(
-            "capitalize",
-            text === "Approved" ? "text-[#00B047]" : "text-[#123CA6]"
-          )}
-        >
-          {text}
-        </p>
-      ),
+      render(value) {
+        return <Tag color={value == "approved" ? "green" : value == "rejected" ? "red" : "yellow"}>{value}</Tag>
+      },
     },
 
     {
       title: "Date",
-      dataIndex: "date",
+      dataIndex: "createdAt",
       align: "center",
+      render: (value) => moment(value).format("MMMM Do YYYY, h:mm a"),
     },
 
     {
       title: "Action",
       dataIndex: "action",
       render: (_, record) => (
-        <div className="flex items-center gap-x-1">
-          <Eye size={22} color="#78C0A8" onClick={() => setOpen(true)} />
-        </div>
+        <Button type="primary" size="small" className="flex items-center gap-x-1" onClick={() => {
+          setGymDetails(record)
+          setOpen(true)
+        }} >
+          <Eye size={22} color="#ffff" />
+        </Button>
       ),
     },
   ];
 
+  if (isError) {
+    return <ErrorComponent />
+  }
+
   return (
     <div className="bg-section-bg rounded-3xl">
       <div className="max-w-[400px] ml-auto mb-2 pt-2">
-        <Input.Search placeholder="Search here..." size="large" />
+        <Input
+          className="!w-[250px] lg:!w-[350px] !py-2 !bg-white  placeholder:text-white"
+          placeholder="Search..."
+          onChange={(e) => setSearchText(e?.target?.value)}
+          prefix={<Search size={20} color="var(--color-main)"></Search>}
+        ></Input>
       </div>
-      <DataTable columns={columns} data={data} pageSize={10}></DataTable>
-      <GymRequestModal open={open} setOpen={setOpen}></GymRequestModal>
+      <Table<ICalimRes>
+        columns={columns}
+        dataSource={data?.data?.data}
+        loading={isLoading || isFetching}
+        pagination={false}
+        rowKey={(record) => record?._id}
+        footer={() =>
+          <Pagination defaultCurrent={page} total={data?.data?.meta?.total} pageSize={limit} align="end" showSizeChanger={false} onChange={(page) => setPage(page)} />
+        }
+        scroll={{ x: "max-content" }}
+      ></Table>
+      {gymDetails && <GymRequestModal open={open} setOpen={setOpen} data={gymDetails}></GymRequestModal>}
     </div>
   );
 };

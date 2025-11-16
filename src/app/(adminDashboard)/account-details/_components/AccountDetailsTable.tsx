@@ -1,93 +1,154 @@
 "use client";;
-import { Input, message, Popconfirm, PopconfirmProps, TableProps } from "antd";
+import { Input, message, Pagination, Popconfirm, PopconfirmProps, Table, TableColumnsType, TableProps, Tag, Tooltip } from "antd";
 import { useState } from "react";
 import DataTable from "@/utils/DataTable";
-import { Eye } from "lucide-react";
+import { Eye, Search } from "lucide-react";
 import UserDetails from "@/components/(adminDashboard)/modals/user/UserDetails";
 import { CgUnblock } from "react-icons/cg";
-
-type TDataType = {
-  key?: number;
-  serial: number;
-  name: string;
-  email: string;
-  date: string;
-};
-
-const data: TDataType[] = Array.from({ length: 20 }).map((data, inx) => ({
-  key: inx,
-  serial: inx + 1,
-  name: "Caleb Shirtum ",
-  email: "calebshirtum@gmail.com",
-  phoneNumber: "+9112655423",
-  date: "11 Sep, 2025",
-}));
-
-const confirmBlock: PopconfirmProps["onConfirm"] = (e) => {
-  console.log(e);
-  message.success("Blocked the user");
-};
+import { toast } from "sonner";
+import { useAllusersQuery, useBlock_unblockMutation } from "@/redux/api/users.api";
+import { IUser } from "@/redux/types";
+import Image from "next/image";
+import moment from "moment";
+import { MdBlockFlipped } from "react-icons/md";
 
 const AccountDetailsTable = () => {
-  const [open, setOpen] = useState(false);
+  const [handleStatusUpdate] = useBlock_unblockMutation();
+  const [page, setPage] = useState(1);
+  const limit = 10
+  const [searchText, setSearchText] = useState("");
+  const query: { page: number, limit: number, searchTerm: string } = { page, limit, searchTerm: searchText };
+  const { data, isLoading, isFetching } = useAllusersQuery(query);
 
-  const columns: TableProps<TDataType>["columns"] = [
+  const [open, setOpen] = useState(false);
+  const [accountDetails, setAccountDetails] = useState<null | IUser>(null);
+
+  const columns: TableColumnsType<IUser> = [
     {
-      title: "Serial",
+      title: "#SL",
       dataIndex: "serial",
-      render: (text) => <p>#{text}</p>,
+      render: (_, __, indx) => indx + 1 + (page - 1) * limit
     },
     {
-      title: "Name",
-      dataIndex: "name",
+      title: "Full Name",
+      dataIndex: "first_name",
+      render: (text, record) => (
+        <div className="flex items-center gap-x-1">
+          <Image
+            src={record?.image || "/empty-user.png"}
+            alt="profile-picture"
+            width={40}
+            height={40}
+            className="size-10 rounded-full"
+          ></Image>
+          <p>{text + " " + (record?.last_name ?? "")}</p>
+        </div>
+      ),
     },
     {
       title: "Email",
       dataIndex: "email",
     },
-    {
-      title: "Phone Number",
-      dataIndex: "phoneNumber",
-    },
 
     {
-      title: "Registration Date",
-      dataIndex: "date",
-      align: "center",
+      title: "Phone number",
+      dataIndex: "contact",
+      render(value) {
+        return (value && value != "") ? value : "N/A"
+      },
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      render(value) {
+        return <Tag color={value ? "green" : "red"}>{value ? "Active" : "Blocked"}</Tag>
+      },
+    },
+    {
+      title: "Join Date",
+      dataIndex: "createdAt",
+      render: (value) => moment(value).format("MMMM Do YYYY, h:mm a"),
     },
 
     {
       title: "Action",
       dataIndex: "action",
       render: (_, record) => (
-        <div className="flex items-center gap-x-1">
-          <Eye
-            size={22}
-            color="#78C0A8"
-            onClick={() => setOpen(true)}
-          />
+        <div className="flex gap-2 ">
+          {/* <Link href={'/user/2'}>
+            <Eye
+              size={22}
+              color="var(--color-text-color)"
+            />
+          </Link> */}
+
+          <button onClick={() => {
+            setAccountDetails(record)
+            setOpen(true)
+          }}>
+            <Eye
+              size={22}
+              color="#78C0A8"
+              onClick={() => setOpen(true)}
+            />
+          </button>
 
           <Popconfirm
             title="Block the user"
-            description="Are you sure to block this user?"
-            onConfirm={confirmBlock}
+            description={`Are you sure to ${record?.status == 1 ? "block" : "unblock"} this user?`}
+            onConfirm={() => handleBlockUser(record?._id, record?.status == 1 ? 0 : 1)}
             okText="Yes"
             cancelText="No"
           >
-            <CgUnblock size={22} color="#CD0335" />
+            <Tooltip title={record?.status == 1 ? "Block" : "Unblock"}>
+              <button>
+                {record?.status == 0 ? <MdBlockFlipped size={22} color="green" /> : <CgUnblock size={22} color="#CD0335" />}
+              </button>
+            </Tooltip>
           </Popconfirm>
         </div>
       ),
     },
   ];
 
+  // Block user handler
+  const handleBlockUser = async (id: string, status: 1 | 0) => {
+    try {
+      if (status) {
+        await handleStatusUpdate({ userId: id, status }).unwrap();
+      } else {
+        await handleStatusUpdate({ userId: id, status }).unwrap();
+      }
+
+      toast.success(`User ${status ? "unblock" : "block"} successfully`)
+
+    } catch (err: any) {
+      toast.error(err?.data?.message || "something went wrong, try again")
+    }
+  };
+
   return (
     <div className="bg-section-bg rounded-3xl">
       <div className="max-w-[400px] ml-auto mb-2 pt-2">
-        <Input.Search placeholder="Search here..." size="large" />
+        <Input
+          className="!w-[250px] lg:!w-[350px] !py-2 !bg-white  placeholder:text-white"
+          placeholder="Search Users..."
+          onChange={(e) => setSearchText(e?.target?.value)}
+          prefix={<Search size={20} color="var(--color-main)"></Search>}
+        ></Input>
       </div>
-      <DataTable columns={columns} data={data} pageSize={10}></DataTable>
-      <UserDetails open={open} setOpen={setOpen}></UserDetails>
+      <Table<IUser>
+        columns={columns}
+        dataSource={data?.data?.data}
+        loading={isLoading || isFetching}
+        pagination={false}
+        rowKey={(record) => record?._id}
+        footer={() =>
+          <Pagination defaultCurrent={page} total={data?.data?.meta?.total} pageSize={limit} align="end" showSizeChanger={false} onChange={(page) => setPage(page)} />
+        }
+        scroll={{ x: "max-content" }}
+      ></Table>
+      {accountDetails && <UserDetails open={open} setOpen={setOpen} details={accountDetails}></UserDetails>}
     </div>
   );
 };

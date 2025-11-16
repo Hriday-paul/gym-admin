@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, LoaderCircle } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -17,21 +17,60 @@ import {
 import Link from "next/link";
 import { LoginFormValues, loginSchema } from "./Schema";
 import LogoSection from "../LogoSection";
+import { useLoginAdminMutation } from "@/redux/api/auth.api";
+import { useCookies } from "react-cookie";
+import { useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
+import { toast } from "sonner";
+import { config } from "@/utils/config";
+import { addUserDetails } from "@/redux/slices/userSlice";
 
 export function LoginForm() {
+  const [postLogin, { isLoading }] = useLoginAdminMutation();
+  const [_, setCookie] = useCookies(['accessToken', 'refreshToken']);
+
+  const route = useRouter();
+  const dispatch = useDispatch();
   const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      emailOrPhone: "",
+      email: "",
       password: "",
     },
   });
 
-  const onSubmit = (values: LoginFormValues) => {
-    console.log(values);
-    // Handle login logic here
+  const onSubmit = async (values: LoginFormValues) => {
+    try {
+      const res = await postLogin(values).unwrap();
+
+      setCookie('accessToken', res?.data?.accessToken, {
+        httpOnly: false,
+        maxAge: 14 * 24 * 60 * 60, // 14 days
+        path: '/',
+        sameSite: 'lax',
+        secure: config.hasSSL,
+      });
+
+      setCookie('refreshToken', res?.data?.refreshToken, {
+        httpOnly: false,
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+        path: '/',
+        sameSite: 'lax',
+        secure: config.hasSSL,
+      });
+
+      dispatch(addUserDetails({ name: res?.data?.user?.first_name, role: res?.data?.user?.role, profilePicture: res?.data?.user?.image || "/empty-user.png" }));
+
+      toast.success('Signin successfully');
+
+      route.push("/dashboard");
+
+
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Something went wrong, try again');
+    }
   };
 
   return (
@@ -48,7 +87,7 @@ export function LoginForm() {
           <div className="text-center space-y-2">
             <h2 className="text-3xl font-bold text-gray-900">Log In</h2>
             <p className="text-gray-600">
-              Access the Taste Point using your email and password.
+              Access the Admin control panel using your email and password.
             </p>
           </div>
 
@@ -57,11 +96,11 @@ export function LoginForm() {
               {/* Email/Phone Input */}
               <FormField
                 control={form.control}
-                name="emailOrPhone"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm font-medium text-gray-700">
-                      Email / Phone Number
+                      Email
                     </FormLabel>
                     <FormControl>
                       <div className="relative">
@@ -94,7 +133,7 @@ export function LoginForm() {
                         <Input
                           type={showPassword ? "text" : "password"}
                           placeholder="Password"
-                           className="pl-10 h-12 border-gray-300 focus:border-main-color focus:ring-main-color"
+                          className="pl-10 h-12 border-gray-300 focus:border-main-color focus:ring-main-color"
                           {...field}
                         />
                         <button
@@ -128,9 +167,11 @@ export function LoginForm() {
               {/* Login Button */}
               <Button
                 type="submit"
-                className="w-full h-12 bg-main-color hover:bg-red-600 text-white font-medium text-base"
+                disabled={isLoading}
+                className="w-full h-12 bg-main-color hover:bg-red-600 text-white font-medium text-base flex flex-row gap-x-2 items-center disabled:cursor-not-allowed"
               >
                 Log In
+                {isLoading ? <LoaderCircle className="animate-spin size-5 text-white" /> : <></>}
               </Button>
             </form>
           </Form>

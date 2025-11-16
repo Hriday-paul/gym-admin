@@ -12,7 +12,7 @@ export default function HeaderAndAddButton() {
         <h3 className="lg:text-3xl md:text-3xl text-lg text-[#333] font-medium">
           Gym Listing
         </h3>
-        <Button onClick={() => setOpen(true)} className="!h-[40px]">
+        <Button onClick={() => setOpen(true)} type="primary" className="!h-[40px]">
           <PlusCircle /> Add Gym
         </Button>
       </div>

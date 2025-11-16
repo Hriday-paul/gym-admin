@@ -19,6 +19,7 @@ const antTheme = {
       colorText: "var(--color-primary-gray)",
       borderColor: "var(--color-section-bg)",
       rowHoverBg: "var(--color-main-bg)",
+      footerBg	: "#fff"
     },
     Modal: {
       colorIcon: "rgba(255,255,255,0.45)",
@@ -27,15 +28,15 @@ const antTheme = {
     },
 
     Button: {
-      defaultBg: "var(--color-main)",
-      defaultColor: "rgba(255,255,255,0.88)",
+      // defaultBg: "var(--color-main)",
+      defaultColor: "#9B111E",
     },
     Popconfirm: {
       colorWarning: "rgb(205,3,53)",
     },
-    Form: {
-      labelFontSize: 18,
-    },
+    // Form: {
+    //   labelFontSize: 10,
+    // },
   },
 };
 

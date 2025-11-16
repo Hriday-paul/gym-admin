@@ -1,96 +1,74 @@
 "use client";
-import { message, Popconfirm, PopconfirmProps, TableProps } from "antd";
+import {Table, TableColumnsType, TableProps } from "antd";
 import { useState } from "react";
-import DataTable from "@/utils/DataTable";
-import { Eye } from "lucide-react";
 import UserDetails from "@/components/(adminDashboard)/modals/user/UserDetails";
-import { CgUnblock } from "react-icons/cg";
-
-type TDataType = {
-  key?: number;
-  serial: number;
-  name: string;
-  email: string;
-  date: string;
-};
-
-const data: TDataType[] = Array.from({ length: 5 }).map((data, inx) => ({
-  key: inx,
-  serial: inx + 1,
-  name: "Caleb Shirtum ",
-  email: "calebshirtum@gmail.com",
-  phoneNumber: "+9112655423",
-  type: "User",
-  date: "11 Sep, 2025",
-}));
-
-const confirmBlock: PopconfirmProps["onConfirm"] = (e) => {
-  console.log(e);
-  message.success("Blocked the user");
-};
+import { IUser } from "@/redux/types";
+import { useAllusersQuery } from "@/redux/api/users.api";
+import Image from "next/image";
+import moment from "moment";
+import ErrorComponent from "@/components/shared/ErrorComponent";
 
 const RecentAccountList = () => {
-  const [open, setOpen] = useState(false);
+  const { isLoading, isFetching, data, isError } = useAllusersQuery({ limit: 10 })
 
-  const columns: TableProps<TDataType>["columns"] = [
+  const columns: TableColumnsType<IUser> = [
     {
-      title: "Serial",
+      title: "#SL",
       dataIndex: "serial",
-      render: (text) => <p>#{text}</p>,
+      render: (_, __, indx) => indx + 1
     },
     {
-      title: "Name",
-      dataIndex: "name",
+      title: "Full Name",
+      dataIndex: "first_name",
+      render: (text, record) => (
+        <div className="flex items-center gap-x-1">
+          <Image
+            src={record?.image || "/empty-user.png"}
+            alt="profile-picture"
+            width={40}
+            height={40}
+            className="size-10 rounded-full"
+          ></Image>
+          <p>{text + " " + (record?.last_name ?? "")}</p>
+        </div>
+      ),
     },
     {
       title: "Email",
       dataIndex: "email",
     },
-    {
-      title: "Phone Number",
-      dataIndex: "phoneNumber",
-    },
 
     {
-      title: "Account Type",
-      dataIndex: "type",
-      align: "center",
+      title: "Phone number",
+      dataIndex: "contact",
+      render(value) {
+        return (value && value != "") ? value : "N/A"
+      },
     },
-
     {
-      title: "Registration Date",
-      dataIndex: "date",
-      align: "center",
-    },
-
-    {
-      title: "Action",
-      dataIndex: "action",
-      render: (_, record) => (
-        <div className="flex items-center gap-x-1">
-          <Eye size={22} color="#78C0A8" onClick={() => setOpen(!open)} />
-
-          <Popconfirm
-            title="Block the user"
-            description="Are you sure to block this user?"
-            onConfirm={confirmBlock}
-            okText="Yes"
-            cancelText="No"
-          >
-            <CgUnblock size={22} color="#CD0335" />
-          </Popconfirm>
-        </div>
-      ),
-    },
+      title: "Join Date",
+      dataIndex: "createdAt",
+      render: (value) => moment(value).format("MMMM Do YYYY, h:mm a"),
+    }
   ];
+
+  if(isError){
+    return <ErrorComponent />
+  }
 
   return (
     <div className="bg-section-bg rounded-3xl">
       <h1 className="text-[#000000] text-xl font-normal py-3 px-2">
-        Recent Account List
+        Recent Joined Users
       </h1>
-      <DataTable columns={columns} data={data}></DataTable>
-      <UserDetails open={open} setOpen={setOpen}></UserDetails>
+      <Table<IUser>
+        columns={columns}
+        dataSource={data?.data?.data}
+        loading={isLoading || isFetching}
+        pagination={false}
+        rowKey={(record) => record?._id}
+        scroll={{ x: "max-content" }}
+      ></Table>
     </div>
   );
 };

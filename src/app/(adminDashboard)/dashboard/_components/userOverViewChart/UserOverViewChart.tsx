@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useState } from "react";
+import { useUserChartQuery } from "@/redux/api/dashboard.api";
 
 const data = [
   { name: "Jan", user: 100, diff: 320 - 100 },
@@ -26,18 +27,26 @@ const data = [
   { name: "Dec", user: 150, diff: 320 - 150 },
 ];
 
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 10 }, (_, i) => {
+  const year = currentYear - i;
+  return { value: year.toString(), label: year.toString() };
+});
+
 const UserOverViewChart = () => {
-  const [selectedYear, setSelectedYear] = useState<string>(
-    new Date().getFullYear().toString()
-  );
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  const query = { JoinYear: selectedYear }
+
+  const { data, isSuccess } = useUserChartQuery(query);
+
+  const handleChange = (value: any) => {
+    setSelectedYear(value);
+  };
 
   const yearsOption = Array(5)
     .fill(0)
     .map((_, index) => new Date().getFullYear() - index);
-
-  const handleChange = (value: string) => {
-    setSelectedYear(value);
-  };
 
   const customTooltip = (props: any) => {
     const { active, payload } = props;
@@ -56,38 +65,19 @@ const UserOverViewChart = () => {
       <div className="flex lg:flex-wrap xl:flex-nowrap justify-between items-center mb-10 gap-2">
         <h1 className="text-xl text-black/70">Users Overview</h1>
 
-        <div className="flex gap-x-2 items-center ">
-          <h1 className="border hover:border-main-color duration-500 rounded px-2 py-1">
-            Users
-          </h1>
+        <Select
+          value={selectedYear}
+          style={{ width: 120 }}
+          onChange={handleChange}
+          options={years}
+        />
 
-          <Select
-            value={selectedYear}
-            style={{ width: 120 }}
-            onChange={handleChange}
-            options={yearsOption.map((year) => ({
-              value: year.toString(),
-              label: year.toString(),
-            }))}
-          />
-        </div>
       </div>
-
-      {/* <div className=" flex gap-x-3 justify-center items-center">
-        <div className="flex gap-x-1">
-          <p className="bg-[#8243EE] p-2 rounded-full w-fit"></p>
-          <p className="text-[11px]">User</p>
-        </div>
-        <div className="flex gap-x-1">
-          <p className="bg-[#D8C5FA] p-2 rounded-full w-fit"></p>
-          <p className="text-[11px]">Vendors</p>
-        </div>
-      </div> */}
       <ResponsiveContainer width="100%" height={300}>
         <BarChart
           width={500}
           height={300}
-          data={data}
+          data={data?.data}
           margin={{
             top: 20,
             right: 30,
@@ -96,13 +86,12 @@ const UserOverViewChart = () => {
           }}
         >
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
+          <XAxis dataKey="month" />
           <YAxis />
           <Tooltip content={customTooltip} />
           {/* <Legend /> */}
 
-          <Bar dataKey="user" stackId="a" fill="#9B111E" barSize={50} />
-          <Bar dataKey="diff" stackId="a" fill="#F5E7E9" barSize={50} />
+          <Bar dataKey="total" stackId="a" fill="#9B111E" barSize={50} />
         </BarChart>
       </ResponsiveContainer>
     </div>

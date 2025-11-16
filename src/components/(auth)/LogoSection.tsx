@@ -5,6 +5,7 @@ export default function LogoSection() {
   return (
     <Image
       src={authPageImage}
+      placeholder="blur"
       alt="auth_page_image"
       className="h-screen object-cover"
     ></Image>

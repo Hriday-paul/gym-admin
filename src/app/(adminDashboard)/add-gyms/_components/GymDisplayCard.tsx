@@ -6,11 +6,12 @@ import { MapPin } from "lucide-react";
 import { message, Popconfirm, PopconfirmProps } from "antd";
 import { AddGymModal } from "@/components/(adminDashboard)/modals/AddGym/AddGymModal";
 import { useState } from "react";
+import { placeHolderBlurImg } from "@/utils/config";
 
 interface GymCardProps {
   name: string;
   address: string;
-  image: string;
+  images: {key : string, url : string}[];
   tags: string[];
 }
 
@@ -19,7 +20,7 @@ const confirmBlock: PopconfirmProps["onConfirm"] = (e) => {
   message.success("Deleted the gym");
 };
 
-export function GymDisplayCard({ name, address, image, tags }: GymCardProps) {
+export function GymDisplayCard({ name, address, images, tags }: GymCardProps) {
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(0);
   return (
@@ -27,9 +28,11 @@ export function GymDisplayCard({ name, address, image, tags }: GymCardProps) {
       <Card className="overflow-hidden border border-gray-200 rounded-lg shadow-sm p-2">
         <div className="relative h-[160px] w-full">
           <Image
-            src={image || "/placeholder.svg"}
+            src={images[0]?.url || "/placeholder.svg"}
             alt={name}
             fill
+            placeholder="blur"
+            blurDataURL={placeHolderBlurImg}
             className="object-cover rounded"
           />
         </div>

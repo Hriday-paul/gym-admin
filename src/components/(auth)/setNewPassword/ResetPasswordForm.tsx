@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Lock, Eye, EyeOff } from "lucide-react";
+import { Lock, Eye, EyeOff, LoaderCircle } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -18,8 +18,13 @@ import LogoSection from "../LogoSection";
 
 import { useRouter } from "next/navigation";
 import { ResetPasswordFormValues, resetPasswordSchema } from "./schema";
+import { useResetPasswordMutation } from "@/redux/api/auth.api";
+import { toast } from "sonner";
 
 export function ResetPasswordForm() {
+  const [postReset, { isLoading }] = useResetPasswordMutation()
+  const route = useRouter();
+
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -30,12 +35,18 @@ export function ResetPasswordForm() {
       confirmPassword: "",
     },
   });
-  const router = useRouter();
 
-  const onSubmit = (values: ResetPasswordFormValues) => {
-    console.log("Password reset submitted:", values);
+  const onSubmit = async (values: ResetPasswordFormValues) => {
+    try {
+      await postReset(values).unwrap();
 
-    router.push("/login");
+      toast.success('Password Reset Successfully');
+
+      route.push("/login");
+
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Something went wrong, try again');
+    }
   };
 
   return (
@@ -52,7 +63,7 @@ export function ResetPasswordForm() {
               Create New Password
             </h2>
             <p className="text-gray-600">
-              Please enter the otp we have sent you in your email.
+              Please enter your new password.
             </p>
           </div>
 
@@ -135,9 +146,11 @@ export function ResetPasswordForm() {
               {/* Reset Password Button */}
               <Button
                 type="submit"
-                className="w-full h-12 bg-main-color hover:bg-red-700 text-white font-medium text-base"
+                disabled={isLoading}
+                className="w-full h-12 bg-main-color hover:bg-red-700 text-white font-medium text-base flex flex-row gap-x-2 items-center disabled:cursor-not-allowed"
               >
-                Reset Password
+                Submit
+                {isLoading ? <LoaderCircle className="animate-spin size-5 text-white" /> : <></>}
               </Button>
             </form>
           </Form>
