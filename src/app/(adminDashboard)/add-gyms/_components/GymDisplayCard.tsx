@@ -4,46 +4,49 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin } from "lucide-react";
 import { message, Popconfirm, PopconfirmProps } from "antd";
-import { AddGymModal } from "@/components/(adminDashboard)/modals/AddGym/AddGymModal";
 import { useState } from "react";
 import { placeHolderBlurImg } from "@/utils/config";
+import { EditGym } from "@/components/(adminDashboard)/modals/AddGym/EditGym";
+import { IGym } from "@/redux/types";
+import { useDltGymMutation } from "@/redux/api/gym.api";
+import { toast } from "sonner";
 
-interface GymCardProps {
-  name: string;
-  address: string;
-  images: {key : string, url : string}[];
-  tags: string[];
-}
-
-const confirmBlock: PopconfirmProps["onConfirm"] = (e) => {
-  console.log(e);
-  message.success("Deleted the gym");
-};
-
-export function GymDisplayCard({ name, address, images, tags }: GymCardProps) {
+export function GymDisplayCard({ gym }: { gym: IGym }) {
+  const [DltGymByApi] = useDltGymMutation();
   const [open, setOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState(0);
+  const [defaultdata, setDefultdata] = useState<IGym | null>(null);
+
+  const handleDelete = async (id: string) => {
+    try {
+      await DltGymByApi({ gymId: id }).unwrap();
+      toast.success("Gym deleted successfully")
+    } catch (err: any) {
+      toast.error(err?.data?.message || "something went wrong, try agin")
+    }
+  }
+
   return (
     <>
       <Card className="overflow-hidden border border-gray-200 rounded-lg shadow-sm p-2">
-        <div className="relative h-[160px] w-full">
+        
           <Image
-            src={images[0]?.url || "/placeholder.svg"}
-            alt={name}
-            fill
+            src={gym?.images[0]?.url || "/placeholder.svg"}
+            alt={gym?.name}
+            height={1000}
+            width={2000}
             placeholder="blur"
             blurDataURL={placeHolderBlurImg}
-            className="object-cover rounded"
+            className="object-cover rounded h-48"
           />
-        </div>
+    
         <CardContent className="py-2 px-0 ">
-          <h3 className="font-semibold text-base text-gray-900 mb-1">{name}</h3>
+          <h3 className="font-semibold text-base text-gray-900 mb-1">{gym?.name}</h3>
           <p className="text-sm text-gray-500 mb-3 flex items-center gap-x-1">
-            <MapPin size={14} /> {address}
+            <MapPin size={14} /> {gym?.street}
           </p>
 
           <div className="flex flex-wrap gap-2 mb-4">
-            {tags.map((tag, index) => (
+            {gym?.disciplines.map((tag, index) => (
               <span
                 key={index}
                 className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded-md"
@@ -57,7 +60,7 @@ export function GymDisplayCard({ name, address, images, tags }: GymCardProps) {
             <Popconfirm
               title="Delete the gym"
               description="Are you sure to delete this gym?"
-              onConfirm={confirmBlock}
+              onConfirm={() => handleDelete(gym?._id)}
               okText="Yes"
               cancelText="No"
             >
@@ -74,8 +77,9 @@ export function GymDisplayCard({ name, address, images, tags }: GymCardProps) {
               size={"sm"}
               className="flex-1 text-sm font-medium bg-main-color hover:bg-red-700 text-white"
               onClick={() => {
+                setDefultdata(gym)
                 setOpen(true);
-                setSelectedId(1);
+
               }}
             >
               Edit
@@ -83,7 +87,7 @@ export function GymDisplayCard({ name, address, images, tags }: GymCardProps) {
           </div>
         </CardContent>
       </Card>
-      <AddGymModal open={open} onOpenChange={setOpen} selectedId={selectedId} />
+      {defaultdata && <EditGym open={open} onOpenChange={setOpen} defaultdata={defaultdata} />}
     </>
   );
 }

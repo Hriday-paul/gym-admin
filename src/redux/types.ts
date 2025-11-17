@@ -30,7 +30,7 @@ export interface IClsSchedule { name : string, day: string, from: number, from_v
 
 export interface IGym {
     _id : string
-    images: { key: string; url: string }[],
+    images: { key: string; url: string, _id : string }[],
     name: string,
     description: string,
     street: string,
