@@ -1,105 +1,55 @@
-import PaginationSection from "@/components/shared/PaginationSection";
+"use client"
 import { EventDisplayCard } from "./EventDisplayCard";
-
-const events = [
-  {
-    id: 1,
-    name: "2025 Chattanooga Open    ",
-    address: "6 3157 Rd, California, USA",
-    image: "/event-image.png",
-    tags: ["AGF", "1 Day", "$75 "],
-    date: "2025-10-08T19:16:00.000Z",
-  },
-  {
-    id: 2,
-    name: "GymNation Stars",
-    address: "6 3157 Rd, California, USA",
-    image: "/event-image.png",
-    tags: ["AGF", "1 Day", "$75 "],
-    date: "2025-10-08T19:16:00.000Z",
-  },
-  {
-    id: 3,
-    name: "GymNation Stars",
-    address: "6 3157 Rd, California, USA",
-    image: "/event-image.png",
-    tags: ["AGF", "1 Day", "$75 "],
-    date: "2025-10-08T19:16:00.000Z",
-  },
-  {
-    id: 4,
-    name: "GymNation Stars",
-    address: "6 3157 Rd, California, USA",
-    image: "/event-image.png",
-    tags: ["AGF", "1 Day", "$75 "],
-    date: "2025-10-08T19:16:00.000Z",
-  },
-  {
-    id: 5,
-    name: "GymNation Stars",
-    address: "6 3157 Rd, California, USA",
-    image: "/event-image.png",
-    tags: ["AGF", "1 Day", "$75 "],
-    date: "2025-10-08T19:16:00.000Z",
-  },
-  {
-    id: 6,
-    name: "GymNation Stars",
-    address: "6 3157 Rd, California, USA",
-    image: "/event-image.png",
-    tags: ["AGF", "1 Day", "$75 "],
-    date: "2025-10-08T19:16:00.000Z",
-  },
-  {
-    id: 7,
-    name: "GymNation Stars",
-    address: "6 3157 Rd, California, USA",
-    image: "/event-image.png",
-    tags: ["AGF", "1 Day", "$75 "],
-    date: "2025-10-08T19:16:00.000Z",
-  },
-  {
-    id: 8,
-    name: "GymNation Stars",
-    address: "6 3157 Rd, California, USA",
-    image: "/event-image.png",
-    tags: ["AGF", "1 Day", "$75 "],
-    date: "2025-10-08T19:16:00.000Z",
-  },
-  {
-    id: 9,
-    name: "GymNation Stars",
-    address: "6 3157 Rd, California, USA",
-    image: "/event-image.png",
-    tags: ["AGF", "1 Day", "$75 "],
-    date: "2025-10-08T19:16:00.000Z",
-  },
-  {
-    id: 10,
-    name: "GymNation Stars",
-    address: "6 3157 Rd, California, USA",
-    image: "/event-image.png",
-    tags: ["AGF", "1 Day", "$75 "],
-    date: "2025-10-08T19:16:00.000Z",
-  },
-];
+import { useAllEventssQuery } from "@/redux/api/event.api";
+import ErrorComponent from "@/components/shared/ErrorComponent";
+import { Empty, Input, Pagination, Spin } from "antd";
+import { useState } from "react";
+import { Search } from "lucide-react";
 
 export default function AllEventContainer() {
+  const [page, setPage] = useState(1);
+  const limit = 10
+  const [searchText, setSearchText] = useState("");
+  const query: { page: number, limit: number, searchTerm: string } = { page, limit, searchTerm: searchText };
+  const { data, isLoading, isSuccess, isError, isFetching } = useAllEventssQuery(query);
+
+  if (isError) {
+    return <ErrorComponent />
+  }
+
+  console.log(data)
+
   return (
-    <div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5 gap-6 border border-gray-300 lg:p-6 p-2 rounded-2xl bg-[#F9F9FA] ">
-        {events.map((event) => (
-          <EventDisplayCard
-            key={event.id}
-            name={event.name}
-            address={event.address}
-            image={event.image}
-            tags={event.tags}
-            date={event.date}
-          />
-        ))}
+    <Spin spinning={isLoading || isFetching}>
+      <div className="max-w-[400px] ml-auto mb-2 pt-2">
+        <Input
+          className="!w-[250px] lg:!w-[350px] !py-2 !bg-white  placeholder:text-white"
+          placeholder="Search..."
+          onChange={(e) => setSearchText(e?.target?.value)}
+          prefix={<Search size={20} color="var(--color-main)"></Search>}
+        ></Input>
       </div>
-      <PaginationSection total={20} current={1} />
-    </div>
+
+      {
+        (isSuccess && data?.data?.meta?.total > 0) && <>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5 gap-6 border border-gray-300 lg:p-6 p-2 rounded-2xl bg-[#F9F9FA]  mb-5">
+            {data?.data?.data?.map((event) => (
+              <EventDisplayCard
+                key={event._id}
+                event={event}
+              />
+            ))}
+          </div>
+
+          <Pagination defaultCurrent={page} total={data?.data?.meta?.total} pageSize={limit} align="end" showSizeChanger={false} onChange={(page) => setPage(page)} />
+
+        </>
+      }
+
+      {
+        (isSuccess && data?.data?.data?.length == 0) && <Empty />
+      }
+    </Spin>
   );
 }

@@ -1,38 +1,28 @@
 "use client";
-import { Input, TableProps } from "antd";
+import { Button, Input, Pagination, Table, TableColumnsType, Tag } from "antd";
 import { useState } from "react";
-import DataTable from "@/utils/DataTable";
-import { Eye } from "lucide-react";
+import { Eye, Search } from "lucide-react";
 import ContactSupportModal from "@/components/(adminDashboard)/modals/contactSupport/ContactSupportModal";
-
-
-type TDataType = {
-  key?: number;
-  serial: number;
-  name: string;
-  email: string;
-  date: string;
-};
-
-const data: TDataType[] = Array.from({ length: 20 }).map((data, inx) => ({
-  key: inx,
-  serial: inx + 1,
-  name: "Caleb Shirtum ",
-  email: "calebshirtum@gmail.com",
-  phoneNumber: "+9112655423",
-  date: "7 oct, 2025",
-}));
-
+import { useAllContactsQuery } from "@/redux/api/contact.api";
+import { Icontact } from "@/redux/types";
+import moment from "moment";
 
 
 const ContactSupportTable = () => {
-  const [open, setOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const limit = 10
+  const [searchText, setSearchText] = useState("");
+  const query: { page: number, limit: number, searchTerm: string } = { page, limit, searchTerm: searchText };
+  const { data, isLoading, isFetching } = useAllContactsQuery(query);
 
-  const columns: TableProps<TDataType>["columns"] = [
+  const [open, setOpen] = useState(false);
+  const [contactData, setContactData] = useState<Icontact | null>(null)
+
+  const columns: TableColumnsType<Icontact> = [
     {
-      title: "Serial",
+      title: "#SL",
       dataIndex: "serial",
-      render: (text) => <p>#{text}</p>,
+      render: (_, __, indx) => indx + 1 + (page - 1) * limit
     },
     {
       title: "Name",
@@ -42,23 +32,41 @@ const ContactSupportTable = () => {
       title: "Email",
       dataIndex: "email",
     },
-    {
-      title: "Phone Number",
-      dataIndex: "phoneNumber",
-    },
 
     {
-      title: "Date",
-      dataIndex: "date",
-      align: "center",
+      title: "Phone number",
+      dataIndex: "contact",
+      render(value) {
+        return (value && value != "") ? value : "N/A"
+      },
+    },
+    {
+      title: "Status",
+      dataIndex: "isReplied",
+      render(value) {
+        return <Tag color={value ? "green" : "yellow"}>{value ? "Replied" : "Not Replied"}</Tag>
+      },
+    },
+    {
+      title: "Join Date",
+      dataIndex: "createdAt",
+      render: (value) => moment(value).format("MMMM Do YYYY, h:mm a"),
     },
 
     {
       title: "Action",
       dataIndex: "action",
       render: (_, record) => (
-        <div className="flex items-center gap-x-1">
-          <Eye size={22} color="#78C0A8" onClick={() => setOpen(true)} />
+        <div className="flex gap-2 ">
+          <Button size='small' onClick={() => {
+            setContactData(record)
+            setOpen(true)
+          }}>
+            <Eye
+              size={18}
+              color="var(--color-text-color)"
+            />
+          </Button>
         </div>
       ),
     },
@@ -67,10 +75,25 @@ const ContactSupportTable = () => {
   return (
     <div className="bg-section-bg rounded-3xl">
       <div className="max-w-[400px] ml-auto mb-2 pt-2">
-        <Input.Search placeholder="Search here..." size="large" />
+        <Input
+          className="!w-[250px] lg:!w-[350px] !py-2 !bg-white  placeholder:text-white"
+          placeholder="Search..."
+          onChange={(e) => setSearchText(e?.target?.value)}
+          prefix={<Search size={20} color="var(--color-main)"></Search>}
+        ></Input>
       </div>
-      <DataTable columns={columns} data={data} pageSize={10}></DataTable>
-      <ContactSupportModal open={open} setOpen={setOpen}></ContactSupportModal>
+      <Table<Icontact>
+        columns={columns}
+        dataSource={data?.data?.data}
+        loading={isLoading || isFetching}
+        pagination={false}
+        rowKey={(record) => record?._id}
+        footer={() =>
+          <Pagination defaultCurrent={page} total={data?.data?.meta?.total} pageSize={limit} align="end" showSizeChanger={false} onChange={(page) => setPage(page)} />
+        }
+        scroll={{ x: "max-content" }}
+      ></Table>
+     {contactData && <ContactSupportModal open={open} setOpen={setOpen} data={contactData}></ContactSupportModal>}
     </div>
   );
 };

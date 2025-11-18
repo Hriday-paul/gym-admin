@@ -5,85 +5,87 @@ import { Card, CardContent } from "@/components/ui/card";
 import { MapPin } from "lucide-react";
 import { message, Popconfirm, PopconfirmProps } from "antd";
 import moment from "moment";
-import AddEventModal from "@/components/(adminDashboard)/modals/addEvent/AddEventModal";
 import { useState } from "react";
+import { IEvent } from "@/redux/types";
+import { EditEventModal } from "@/components/(adminDashboard)/modals/addEvent/EditEvent";
+import { useDltEventMutation } from "@/redux/api/event.api";
+import { toast } from "sonner";
 
 interface EventCardProps {
-  name: string;
-  address: string;
-  image: string;
-  tags: string[];
-  date: string;
+  event: IEvent
 }
-
-const confirmBlock: PopconfirmProps["onConfirm"] = (e) => {
-  console.log(e);
-  message.success("Deleted the event");
-};
-
-const color = ["#CC5767", "#22C65F", "#FFBB24", "#0066FF"];
-
-const randomColorPick = () => {
-  return color[Math.floor(Math.random() * color.length)];
-};
-
-export function EventDisplayCard({
-  name,
-  address,
-  image,
-  tags,
-  date,
-}: EventCardProps) {
+export function EventDisplayCard({ event }: EventCardProps) {
   const [open, setOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState(0);
+  const [handleDltevent] = useDltEventMutation();
+  const [defaultData, setDefaultData] = useState<null | IEvent>(null);
+
+  const handleDelete = async (id: string) => {
+    try {
+      await handleDltevent({ eventId: id }).unwrap();
+      toast.success("Event deleted successfully")
+    } catch (err: any) {
+      toast.error(err?.data?.message || "something went wrong, try agin")
+    }
+  }
+
   return (
     <>
       <Card className="overflow-hidden border border-gray-200 rounded-lg shadow-sm p-2">
         <div className="relative h-[160px] w-full">
           <div>
             <Image
-              src={image || "/placeholder.svg"}
-              alt={name}
+              src={event?.image?.url || "/placeholder.svg"}
+              alt={"event image"}
               fill
               className="object-cover rounded"
             />
 
             <div className="absolute top-2 left-2 bg-white text-center p-2 rounded-md  ">
               <p className="text-[#8A8A8A] font-medium">
-                {moment(date).format("MMM")}
+                {moment(event?.date).format("MMM")}
               </p>
               <p className="text-main-color font-semibold">
-                {moment(date).format("DD")}
+                {moment(event?.date).format("DD")}
               </p>
               <p className="text-[#8A8A8A] font-medium">
-                {moment(date).format("YYYY")}
+                {moment(event?.date).format("YYYY")}
               </p>
             </div>
           </div>
         </div>
-        <CardContent className="py-2 px-0 ">
-          <h3 className="font-semibold text-base text-gray-900 mb-1">{name}</h3>
+        <CardContent className="p-2">
+          <h3 className="font-semibold text-base text-gray-900 mb-1">{event?.name}</h3>
           <p className="text-sm text-gray-500 mb-3 flex items-center gap-x-1">
-            <MapPin size={14} /> {address}
+            <MapPin size={14} /> {event?.venue}
           </p>
 
           <div className="flex flex-wrap gap-2 mb-4">
-            {tags.map((tag, index) => (
-              <span
-                key={index}
-                style={{ backgroundColor: randomColorPick() }}
-                className="px-3 py-1 text-xs font-medium text-white rounded-md"
-              >
-                {tag}
-              </span>
-            ))}
+
+            <span
+              className="px-3 py-1 text-xs font-medium text-white rounded-md bg-blue-500"
+            >
+              {event.type}
+            </span>
+
+            <span
+              className={`px-3 py-1 text-xs font-medium text-white rounded-md ${moment(event?.date).diff(moment(), "days") < 0 ? "bg-red-500" : "bg-green-500"}`}
+            >
+              {`${moment(event?.date).diff(moment(), "days")} days`}
+            </span>
+
+            <span
+              className="px-3 py-1 text-xs font-medium text-white rounded-md bg-yellow-400"
+            >
+              {`$ ${event?.registration_fee}`}
+            </span>
+
           </div>
 
           <div className="flex gap-2">
             <Popconfirm
               title="Delete the event"
               description="Are you sure to delete this event?"
-              onConfirm={confirmBlock}
+              onConfirm={()=>handleDelete(event?._id)}
               okText="Yes"
               cancelText="No"
             >
@@ -100,16 +102,17 @@ export function EventDisplayCard({
               size={"sm"}
               className="flex-1 text-sm font-medium bg-main-color hover:bg-red-700 text-white"
               onClick={() => {
+                setDefaultData(event)
                 setOpen(true);
-                setSelectedId(1);
-              }}
-            >
+              }}>
               Edit
             </Button>
           </div>
         </CardContent>
       </Card>
-      <AddEventModal open={open} setOpen={setOpen} selectedId={selectedId} />
+
+      {defaultData && <EditEventModal defaultdata={defaultData} open={open} setOpen={setOpen} />}
+
     </>
   );
 }

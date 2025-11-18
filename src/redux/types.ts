@@ -148,8 +148,7 @@ export interface IProduct {
 
 export interface Icontact {
     _id: string
-    firstName: string;
-    lastName: string;
+    name: string;
     email: string;
     contact: string;
     description: string;
@@ -171,4 +170,21 @@ export interface IBrand {
     _id: string,
     name: string,
     status: "pending" | "approved" | "rejected"
+}
+
+export interface IEvent {
+    _id : string
+    type : string,
+    name : string,
+    venue : string,
+    state : string,
+    city : string,
+    date : Date,
+    duration : string,
+    registration_fee : number,
+    event_website : string,
+    image: { key: string; url: string },
+
+    user : IUser
+    gym : IGym
 }
