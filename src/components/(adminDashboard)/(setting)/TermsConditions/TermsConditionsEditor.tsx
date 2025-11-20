@@ -1,22 +1,25 @@
 "use client";
 
+import { useGetTermsContentsQuery, useUpdateTermsContentMutation } from "@/redux/api/content.api";
 import { Button } from "antd";
+import { LoaderCircle } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FaArrowLeft } from "react-icons/fa6";
+import { ImSpinner3 } from "react-icons/im";
 import "react-quill/dist/quill.snow.css";
+import { toast } from "sonner";
 
 // Dynamically import ReactQuill with SSR disabled
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 const TermsConditionsEditor = () => {
-  const route = useRouter();
-  const [value, setValue] = useState(
-    "<h2>Lorem ipsum dolor sit amet consectetur. Fringilla a cras vitae orci. Egestas duis id nisl sed ante congue scelerisque. Eleifend facilisis aliquet tempus morbi leo sagittis. Pellentesque odio amet turpis habitant. Imperdiet tincidunt nisl consectetur hendrerit accumsan vehicula imperdiet mattis. Neque a vitae diam pharetra duis habitasse convallis luctus pulvinar. Pharetra nunc morbi elementum nisl magnis convallis arcu enim tortor.</h2><p><br/></p><h2>In today’s rapidly evolving world, the importance of education cannot be overstated. Technological advancements, global interconnectivity, and the proliferation of information demand that we continuously adapt and expand our understanding. An educated individual is better prepared to tackle these challenges, innovate, and drive progress. Moreover, education promotes equality and social justice, providing marginalized groups with the means to uplift themselves and break cycles of poverty.</h2><p><br/></p><h2>Education also nurtures empathy and cultural awareness, fostering a more inclusive and understanding society. By learning about diverse perspectives and histories, we become more open-minded and respectful of differences, which is crucial in a world that is increasingly interconnected. This cultural competence not only enhances personal relationships but also strengthens international collaboration and peace.....</h2>"
-  );
+  const [updateFn, { isLoading: updateLoading }] = useUpdateTermsContentMutation();
+  const { data: termsRes, isLoading: getLoading, isSuccess } = useGetTermsContentsQuery();
 
-  console.log(value);
+  const route = useRouter();
+  const [value, setValue] = useState("");
 
   const toolbarOptions = [
     ["image"],
@@ -27,9 +30,24 @@ const TermsConditionsEditor = () => {
     [{ color: [] }, { background: [] }],
   ];
 
+  const onSubmit = async () => {
+    try {
+      const res = await updateFn(value).unwrap();
+      toast.success("Terms update done.")
+    } catch (error) {
+      toast.error("Terms update failed, try again")
+    }
+  }
+
   const moduleConest = {
     toolbar: toolbarOptions,
   };
+
+  useEffect(() => {
+    if (termsRes) {
+      setValue(termsRes?.data?.value)
+    }
+  }, [termsRes])
 
   return (
     <>
@@ -40,35 +58,38 @@ const TermsConditionsEditor = () => {
         >
           <FaArrowLeft size={20} color="#fff" />
         </span>
-        <h4 className="text-2xl font-medium text-text-color">
-          Terms & Conditions
-        </h4>
+        <h4 className="text-2xl font-medium text-text-color">Terms & Condition</h4>
       </div>
-      <div className="lg:mt-10 mt-5 border rounded p-2">
-        <ReactQuill
-          modules={moduleConest}
-          theme="snow"
-          value={value}
-          onChange={setValue}
-          placeholder="Start writing ......"
-          style={{
-            // border: "1px solid #EFE8FD",
-            marginTop: "20px",
-            borderRadius: "10px",
-          }}
-        />
-      </div>
-
-      <Button
-        size="large"
-        block
-        style={{
-          marginTop: "20px",
-          border: "none",
-        }}
-      >
-        Save Changes
-      </Button>
+      {getLoading ? <div className='min-h-40 flex items-center justify-center'>
+        <LoaderCircle size={50} className="text-4xl text-main-color animate-spin" />
+      </div> : isSuccess ?
+        <>
+          <ReactQuill
+            modules={moduleConest}
+            theme="snow"
+            value={value}
+            onChange={setValue}
+            placeholder="Start writing ......"
+            style={{
+              border: "1px solid #EFE8FD",
+              marginTop: "20px",
+              borderRadius: "10px",
+            }}
+          />
+          <Button
+          onClick={onSubmit}
+            size="large"
+            block
+            style={{
+              marginTop: "20px",
+            }}
+            disabled={updateLoading} icon={updateLoading ? <ImSpinner3 className="animate-spin size-5 text-main-color" /> : <></>} iconPosition="end"
+            type="primary"
+          >
+            Save Changes
+          </Button>
+        </> : <></>
+      }
     </>
   );
 };
